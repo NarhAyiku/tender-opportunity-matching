@@ -5,3 +5,10 @@ psycopg2-binary
 pydantic
 sentence-transformers
 numpy
+python-multipart
+boto3
+python-dotenv
+aiosmtplib
+passlib[bcrypt]
+python-jose[cryptography]
+pydantic[email]
