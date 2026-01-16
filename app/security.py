@@ -88,3 +88,29 @@ def get_current_user(
 
 def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
     return current_user
+
+
+# Compatibility functions for existing endpoints
+def require_user(current_user: User = Depends(get_current_user)) -> User:
+    """Dependency that ensures a valid authenticated user."""
+    return current_user
+
+
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    """Dependency that ensures the user is an admin."""
+    if not getattr(current_user, 'is_admin', False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    return current_user
+
+
+def require_same_user(user_id: int, current_user: User = Depends(get_current_user)) -> User:
+    """Dependency that ensures the current user matches the requested user_id."""
+    if current_user.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: You can only access your own data"
+        )
+    return current_user
