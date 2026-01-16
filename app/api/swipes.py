@@ -66,13 +66,22 @@ def record_swipe(
 
     # If updating existing swipe, just update the action
     if existing:
+        old_action = existing.action
         existing.action = payload.action.value
-        # If changing to like, generate preview data
-        if payload.action.value == "like" and not existing.preview_data:
-            preview_data = generate_preview_data(current_user, opportunity)
-            preview_data["generated_at"] = datetime.utcnow().isoformat()
-            existing.preview_data = preview_data
+        
+        # If changing to like, generate preview data and set status to pending
+        if payload.action.value == "like":
+            if not existing.preview_data:
+                preview_data = generate_preview_data(current_user, opportunity)
+                preview_data["generated_at"] = datetime.utcnow().isoformat()
+                existing.preview_data = preview_data
             existing.status = "pending"
+        # If changing FROM like to dislike/save, reset status (no longer pending)
+        elif old_action == "like" and payload.action.value in ["dislike", "save"]:
+            existing.status = "rejected"  # Mark as rejected since user changed their mind
+            existing.preview_data = None  # Clear preview data
+            existing.edited_data = None  # Clear edited data
+        
         db.commit()
         db.refresh(existing)
         return existing
@@ -276,10 +285,17 @@ def edit_swipe(
     if not swipe:
         raise HTTPException(status_code=404, detail="Swipe not found")
 
+    # Only allow editing pending LIKE swipes
     if swipe.status != "pending":
         raise HTTPException(
             status_code=400, 
             detail="Can only edit pending swipes"
+        )
+    
+    if swipe.action != "like":
+        raise HTTPException(
+            status_code=400,
+            detail="Can only edit 'like' swipes. Dislike and save swipes cannot be edited."
         )
 
     # Update edited_data
@@ -343,10 +359,17 @@ def reject_swipe(
     if not swipe:
         raise HTTPException(status_code=404, detail="Swipe not found")
 
+    # Only allow rejecting pending LIKE swipes
     if swipe.status != "pending":
         raise HTTPException(
             status_code=400,
             detail=f"Swipe is already {swipe.status}, cannot reject"
+        )
+    
+    if swipe.action != "like":
+        raise HTTPException(
+            status_code=400,
+            detail="Can only reject 'like' swipes. Dislike and save swipes cannot be rejected."
         )
 
     swipe.status = "rejected"
