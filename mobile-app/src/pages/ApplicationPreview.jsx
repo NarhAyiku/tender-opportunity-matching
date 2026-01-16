@@ -35,9 +35,12 @@ export default function ApplicationPreview() {
     }
   };
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = async (skipSavingState = false) => {
     try {
-      setSaving(true);
+      if (!skipSavingState) {
+        setSaving(true);
+      }
+      setError(null);
       const editedData = {
         ...(swipe.preview_data || {}),
         cover_letter: coverLetter
@@ -45,21 +48,36 @@ export default function ApplicationPreview() {
       await swipes.edit(swipeId, editedData);
       // Reload to get updated swipe
       await loadSwipe();
+      return true; // Success
     } catch (err) {
       setError(err.message);
+      return false; // Failure
     } finally {
-      setSaving(false);
+      if (!skipSavingState) {
+        setSaving(false);
+      }
     }
   };
 
   const handleApprove = async () => {
     try {
       setSaving(true);
-      // Save any edits first
+      setError(null);
+      
+      // Save any edits first - if there are changes, we must save successfully before approving
       if (coverLetter !== (swipe.preview_data?.cover_letter || '')) {
-        await handleSaveEdit();
+        // Pass skipSavingState=true so handleSaveEdit doesn't manage saving state
+        // (we'll manage it here in handleApprove)
+        const saveSuccess = await handleSaveEdit(true);
+        if (!saveSuccess) {
+          // Save failed - don't proceed with approval
+          setError('Failed to save edits. Please try again before approving.');
+          setSaving(false);
+          return;
+        }
       }
-      // Approve the swipe
+      
+      // Only approve if save succeeded (or no changes to save)
       await swipes.approve(swipeId);
       // Navigate back to feed
       navigate('/feed');
