@@ -13,7 +13,7 @@ class UserSwipe(Base):
     opportunity_id = Column(Integer, ForeignKey("opportunities.id"), nullable=False, index=True)
 
     action = Column(String, nullable=False)  # "like", "dislike", "save"
-    status = Column(String, default=None)  # "pending", "approved", "submitted", "rejected" (only for "like" actions)
+    status = Column(String, default="pending")  # "pending", "approved", "submitted", "rejected"
     created_at = Column(DateTime, default=datetime.utcnow)
     swipe_date = Column(Date, default=date.today, index=True)  # For daily limit tracking
     
