@@ -100,9 +100,6 @@ def record_swipe(
         preview_data["generated_at"] = datetime.utcnow().isoformat()
         swipe.preview_data = preview_data
         swipe.status = "pending"
-    else:
-        # For "dislike" and "save" actions, status should be None (not pending)
-        swipe.status = None
 
     try:
         db.add(swipe)
