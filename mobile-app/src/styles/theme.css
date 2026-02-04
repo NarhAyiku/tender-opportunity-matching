@@ -1,0 +1,45 @@
+/* ============================================
+   TENDER - Theme Utility Classes
+   All variables are defined in tokens.css (single source of truth).
+   This file only contains reusable utility classes.
+   ============================================ */
+
+.app-shell {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--color-bg);
+  padding: var(--space-lg);
+}
+
+.surface {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md);
+}
+
+.page-title {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--color-text);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-50);
+  color: var(--color-primary-dark);
+  font-weight: 600;
+  font-size: 0.75rem;
+}

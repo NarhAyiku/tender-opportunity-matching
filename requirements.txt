@@ -12,3 +12,7 @@ aiosmtplib
 passlib[bcrypt]
 python-jose[cryptography]
 pydantic[email]
+pypdf>=3.0.0
+httpx>=0.28.0
+python-docx>=0.8.11
+PyPDF2>=3.0.0

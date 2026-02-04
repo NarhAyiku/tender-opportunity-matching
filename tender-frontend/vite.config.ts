@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       proxy: mode === 'development' ? {
         '/api': {
-          target: env.VITE_API_URL || 'http://localhost:8002',
+          target: env.VITE_API_URL || 'http://localhost:8000',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
         },

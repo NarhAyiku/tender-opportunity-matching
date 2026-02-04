@@ -14,6 +14,8 @@ from app.schemas.swipe import (
     SwipeLimitsResponse, SwipeWithOpportunity
 )
 from app.services.application_generator import generate_preview_data
+from app.api.conversations import create_conversation_for_application
+from app.models.application import Application
 
 router = APIRouter(prefix="/swipes", tags=["swipes"])
 
@@ -335,11 +337,36 @@ def approve_swipe(
 
     # Update swipe status to approved
     swipe.status = "approved"
+
+    # Create application if one doesn't exist yet
+    existing_app = db.query(Application).filter(
+        Application.user_id == current_user.id,
+        Application.opportunity_id == swipe.opportunity_id,
+    ).first()
+
+    if not existing_app:
+        app = Application(
+            user_id=current_user.id,
+            opportunity_id=swipe.opportunity_id,
+            status="submitted",
+            submitted_at=datetime.utcnow(),
+        )
+        db.add(app)
+        db.flush()
+
+        opp = db.query(Opportunity).filter(Opportunity.id == swipe.opportunity_id).first()
+        opp_type = opp.opportunity_type if opp else "job"
+
+        create_conversation_for_application(
+            db=db,
+            user_id=current_user.id,
+            application_id=app.id,
+            opportunity_id=swipe.opportunity_id,
+            opportunity_type=opp_type,
+        )
+
     db.commit()
     db.refresh(swipe)
-
-    # Application will be created by the application flow when it checks for approved swipes
-    # This is handled in the applications.py update
 
     return swipe
 

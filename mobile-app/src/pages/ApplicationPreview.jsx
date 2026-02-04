@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { swipes } from '../services/api';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
 export default function ApplicationPreview() {
   const { swipeId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [swipe, setSwipe] = useState(null);
   const [coverLetter, setCoverLetter] = useState('');
   const [loading, setLoading] = useState(true);
@@ -13,20 +15,33 @@ export default function ApplicationPreview() {
 
   useEffect(() => {
     loadSwipe();
-  }, [swipeId]);
+  }, [swipeId, user]);
 
   const loadSwipe = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const pending = await swipes.getPending();
-      const found = pending.find(s => s.id === parseInt(swipeId));
-      if (!found) {
+      // Fetch swipe with opportunity details
+      const { data, error: fetchError } = await supabase
+        .from('swipes')
+        .select(`
+          *,
+          opportunity:opportunities(*)
+        `)
+        .eq('id', swipeId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!data) {
         setError('Swipe not found');
         return;
       }
-      setSwipe(found);
-      // Use edited_data if available, otherwise preview_data
-      const data = found.edited_data || found.preview_data || {};
+      setSwipe(data);
       setCoverLetter(data.cover_letter || '');
     } catch (err) {
       setError(err.message);
@@ -36,22 +51,26 @@ export default function ApplicationPreview() {
   };
 
   const handleSaveEdit = async (skipSavingState = false) => {
+    if (!user) return false;
+
     try {
       if (!skipSavingState) {
         setSaving(true);
       }
       setError(null);
-      const editedData = {
-        ...(swipe.preview_data || {}),
-        cover_letter: coverLetter
-      };
-      await swipes.edit(swipeId, editedData);
-      // Reload to get updated swipe
+
+      const { error: updateError } = await supabase
+        .from('swipes')
+        .update({ cover_letter: coverLetter })
+        .eq('id', swipeId)
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
       await loadSwipe();
-      return true; // Success
+      return true;
     } catch (err) {
       setError(err.message);
-      return false; // Failure
+      return false;
     } finally {
       if (!skipSavingState) {
         setSaving(false);
@@ -60,26 +79,28 @@ export default function ApplicationPreview() {
   };
 
   const handleApprove = async () => {
+    if (!user) return;
+
     try {
       setSaving(true);
       setError(null);
-      
-      // Save any edits first - if there are changes, we must save successfully before approving
-      if (coverLetter !== (swipe.preview_data?.cover_letter || '')) {
-        // Pass skipSavingState=true so handleSaveEdit doesn't manage saving state
-        // (we'll manage it here in handleApprove)
-        const saveSuccess = await handleSaveEdit(true);
-        if (!saveSuccess) {
-          // Save failed - don't proceed with approval
-          setError('Failed to save edits. Please try again before approving.');
-          setSaving(false);
-          return;
-        }
+
+      // Save any edits first
+      const saveSuccess = await handleSaveEdit(true);
+      if (!saveSuccess) {
+        setError('Failed to save edits. Please try again before approving.');
+        setSaving(false);
+        return;
       }
-      
-      // Only approve if save succeeded (or no changes to save)
-      await swipes.approve(swipeId);
-      // Navigate back to feed
+
+      // Update swipe status to approved
+      const { error: approveError } = await supabase
+        .from('swipes')
+        .update({ action: 'applied' })
+        .eq('id', swipeId)
+        .eq('user_id', user.id);
+
+      if (approveError) throw approveError;
       navigate('/feed');
     } catch (err) {
       setError(err.message);

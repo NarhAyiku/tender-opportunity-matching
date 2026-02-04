@@ -1,21 +1,45 @@
 import { useState, useEffect } from 'react';
-import { swipes } from '../services/api';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
 export default function SwipeLimitCounter() {
+  const { user } = useAuth();
   const [limits, setLimits] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const DAILY_LIMIT = 50; // Default daily limit
+
   useEffect(() => {
-    loadLimits();
-    // Refresh every minute
-    const interval = setInterval(loadLimits, 60000);
-    return () => clearInterval(interval);
-  }, []);
+    if (user) {
+      loadLimits();
+      // Refresh every minute
+      const interval = setInterval(loadLimits, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const loadLimits = async () => {
+    if (!user) return;
+
     try {
-      const data = await swipes.getLimits();
-      setLimits(data);
+      // Get today's start (midnight)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const { count, error } = await supabase
+        .from('swipes')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', today.toISOString());
+
+      if (error) throw error;
+
+      const usedToday = count || 0;
+      setLimits({
+        used_today: usedToday,
+        daily_limit: DAILY_LIMIT,
+        remaining: Math.max(0, DAILY_LIMIT - usedToday)
+      });
     } catch (err) {
       console.error('Failed to load swipe limits:', err);
     } finally {

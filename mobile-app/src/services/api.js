@@ -1,3 +1,5 @@
+import { logApiError, logNetworkError } from './errorLogger';
+
 const API_BASE = '/api';
 
 // Get stored token
@@ -9,19 +11,48 @@ const authHeaders = () => ({
   ...(getToken() && { 'Authorization': `Bearer ${getToken()}` })
 });
 
-// Generic fetch wrapper
+// Generic fetch wrapper with error logging
 async function request(endpoint, options = {}) {
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers: { ...authHeaders(), ...options.headers }
-  });
+  const method = options.method || 'GET';
 
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: 'Request failed' }));
-    throw new Error(error.detail || 'Request failed');
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers: { ...authHeaders(), ...options.headers }
+    });
+
+    if (!res.ok) {
+      const statusText = `${res.status} ${res.statusText}`;
+      const error = await res.json().catch(() => ({ detail: statusText }));
+      const detail = error.detail || statusText;
+      const err = new Error(detail);
+      err.status = res.status;
+      err.endpoint = endpoint;
+
+      // Log API error
+      logApiError(err, endpoint, method);
+
+      throw err;
+    }
+
+    return res.json();
+  } catch (err) {
+    // Check if it's a network error
+    if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+      logNetworkError(err);
+      const networkErr = new Error('Network error. Please check your connection.');
+      networkErr.status = 0;
+      networkErr.isNetworkError = true;
+      throw networkErr;
+    }
+
+    // Re-throw if already logged
+    if (err.endpoint) throw err;
+
+    // Log unknown errors
+    logApiError(err, endpoint, method);
+    throw err;
   }
-
-  return res.json();
 }
 
 // Auth
@@ -35,6 +66,8 @@ export const auth = {
     method: 'POST',
     body: JSON.stringify({ email, password })
   }),
+
+  me: () => request('/auth/me'),
 
   setToken: (token) => localStorage.setItem('tender_token', token),
   clearToken: () => localStorage.removeItem('tender_token'),
@@ -84,4 +117,17 @@ export const applications = {
   getOne: (id) => request(`/applications/${id}`)
 };
 
-export default { auth, user, feed, swipes, applications };
+// Preferences
+export const preferences = {
+  get: () => request('/preferences/me'),
+  update: (data) => request('/preferences/me', {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  create: (data) => request('/preferences/me', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+};
+
+export default { auth, user, feed, swipes, applications, preferences };

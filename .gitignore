@@ -23,3 +23,7 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Claude Code (contains API tokens)
+.mcp.json
+.claude/settings.local.json

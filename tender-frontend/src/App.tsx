@@ -10,6 +10,11 @@ import {
   PreferencesPage,
   ApplicationsPage,
   SavedPage,
+  DocumentUploadPage,
+  RecruiterDashboard,
+  ConversationsPage,
+  SettingsPage,
+  FeedbackPage,
 } from './pages';
 
 function App() {
@@ -42,6 +47,14 @@ function App() {
           }
         />
         <Route
+          path="/upload"
+          element={
+            <ProtectedRoute>
+              <DocumentUploadPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/applications"
           element={
             <ProtectedRoute>
@@ -70,6 +83,38 @@ function App() {
           element={
             <ProtectedRoute>
               <PreferencesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/recruiter"
+          element={
+            <ProtectedRoute>
+              <RecruiterDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/inbox"
+          element={
+            <ProtectedRoute>
+              <ConversationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/feedback"
+          element={
+            <ProtectedRoute>
+              <FeedbackPage />
             </ProtectedRoute>
           }
         />

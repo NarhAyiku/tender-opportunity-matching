@@ -27,6 +27,12 @@ class Application(Base):
     # User notes
     notes = Column(Text)
 
+    # Document attachments (per PRD line 59)
+    attached_resume_id = Column(Integer, ForeignKey("documents.id"))
+    attached_transcript_id = Column(Integer, ForeignKey("documents.id"))
+    attached_cover_letter_id = Column(Integer, ForeignKey("documents.id"))
+    conversation_id = Column(Integer, ForeignKey("conversations.id"))
+
     # Relationships
     user = relationship("User", backref="applications")
     opportunity = relationship("Opportunity", backref="applications")

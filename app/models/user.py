@@ -53,9 +53,17 @@ class User(Base):
     linkedin_url = Column(String)
     github_url = Column(String)
     portfolio_url = Column(String)
+    location = Column(String)
 
     # Legacy field (kept for backward compatibility, but use education_entries instead)
     education = Column(String)
     
     # Swipe limits
     daily_swipe_limit = Column(Integer, default=50)  # Default daily swipe limit
+
+    # Screening / compliance
+    age = Column(Integer)
+    preferred_countries = Column(JSON, default=list)
+    screening_completed = Column(Boolean, default=False)
+    screening_completed_at = Column(DateTime)
+    consent_share_documents = Column(Boolean, default=False)

@@ -8,12 +8,13 @@ interface SwipeDeckProps {
   opportunities: OpportunityMatch[];
   currentIndex: number;
   onSwipe: (opportunityId: number, action: SwipeAction) => void;
+  onSelect?: (opportunity: OpportunityMatch) => void;
 }
 
 const SWIPE_THRESHOLD = 100;
 const ROTATION_FACTOR = 0.1;
 
-export function SwipeDeck({ opportunities, currentIndex, onSwipe }: SwipeDeckProps) {
+export function SwipeDeck({ opportunities, currentIndex, onSwipe, onSelect }: SwipeDeckProps) {
   const [isGone, setIsGone] = useState(false);
 
   const [{ x, rotate, scale }, api] = useSpring(() => ({
@@ -58,6 +59,10 @@ export function SwipeDeck({ opportunities, currentIndex, onSwipe }: SwipeDeckPro
         const dir = dx > 0 ? 'right' : 'left';
         triggerSwipe(dir);
       } else if (!down) {
+        // Check for tap (minimal movement)
+        if (Math.abs(mx) < 5 && onSelect) {
+          onSelect(currentOpp);
+        }
         // Snap back
         api.start({ x: 0, rotate: 0, scale: 1 });
       } else {

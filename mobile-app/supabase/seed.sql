@@ -1,0 +1,263 @@
+-- TENDER Sample Data
+-- Run this AFTER schema.sql in Supabase SQL Editor
+
+-- ============================================
+-- SAMPLE OPPORTUNITIES
+-- ============================================
+INSERT INTO public.opportunities (
+  title, description, company_name, company_logo, location,
+  opportunity_type, work_arrangement, experience_level, education_level,
+  salary_min, salary_max, salary_currency,
+  required_skills, industry, apply_url, source
+) VALUES
+
+-- Tech Jobs
+(
+  'Junior Software Developer',
+  'Join our growing team to build innovative web applications. You''ll work with React, Node.js, and PostgreSQL. Great opportunity for recent graduates to learn and grow.',
+  'TechStartup Ghana',
+  NULL,
+  'Accra, Ghana',
+  'job',
+  'hybrid',
+  'entry',
+  'bachelor',
+  3000, 5000, 'GHS',
+  ARRAY['JavaScript', 'React', 'Node.js', 'Git'],
+  'Technology',
+  'https://example.com/apply/1',
+  'manual'
+),
+(
+  'Data Analyst Intern',
+  'Learn data analysis in a fast-paced fintech environment. Work with Python, SQL, and visualization tools. Mentorship provided.',
+  'FinTech Solutions',
+  NULL,
+  'Accra, Ghana',
+  'internship',
+  'onsite',
+  'entry',
+  'bachelor',
+  1500, 2500, 'GHS',
+  ARRAY['Python', 'SQL', 'Excel', 'Data Analysis'],
+  'Finance',
+  'https://example.com/apply/2',
+  'manual'
+),
+(
+  'UI/UX Designer',
+  'Create beautiful user experiences for our mobile banking app. Must have experience with Figma and user research.',
+  'MobileMoney Plus',
+  NULL,
+  'Remote',
+  'job',
+  'remote',
+  'mid',
+  'bachelor',
+  5000, 8000, 'GHS',
+  ARRAY['Figma', 'UI Design', 'User Research', 'Prototyping'],
+  'Finance',
+  'https://example.com/apply/3',
+  'manual'
+),
+(
+  'Full Stack Developer',
+  'Build and maintain scalable web applications. Experience with React and Python/Django required. AWS knowledge is a plus.',
+  'CloudTech Africa',
+  NULL,
+  'Lagos, Nigeria',
+  'job',
+  'hybrid',
+  'mid',
+  'bachelor',
+  800000, 1200000, 'NGN',
+  ARRAY['React', 'Python', 'Django', 'AWS', 'PostgreSQL'],
+  'Technology',
+  'https://example.com/apply/4',
+  'manual'
+),
+(
+  'Product Manager',
+  'Lead product development for our EdTech platform. Work closely with engineering and design teams to ship features users love.',
+  'EduConnect',
+  NULL,
+  'Nairobi, Kenya',
+  'job',
+  'hybrid',
+  'senior',
+  'master',
+  150000, 250000, 'KES',
+  ARRAY['Product Management', 'Agile', 'User Research', 'Analytics'],
+  'Education',
+  'https://example.com/apply/5',
+  'manual'
+),
+
+-- Scholarships & Grants
+(
+  'STEM Scholarship 2026',
+  'Full scholarship for outstanding students pursuing degrees in Science, Technology, Engineering, or Mathematics. Covers tuition, accommodation, and monthly stipend.',
+  'Africa Development Foundation',
+  NULL,
+  'Pan-African',
+  'scholarship',
+  'onsite',
+  'entry',
+  'bachelor',
+  NULL, NULL, 'USD',
+  ARRAY['Academic Excellence', 'Leadership', 'STEM'],
+  'Education',
+  'https://example.com/apply/6',
+  'manual'
+),
+(
+  'Women in Tech Grant',
+  'Financial support for women entrepreneurs in technology. Up to $10,000 in funding plus mentorship and networking opportunities.',
+  'TechWomen Africa',
+  NULL,
+  'Remote',
+  'grant',
+  'remote',
+  'entry',
+  NULL,
+  5000, 10000, 'USD',
+  ARRAY['Entrepreneurship', 'Technology', 'Business Plan'],
+  'Technology',
+  'https://example.com/apply/7',
+  'manual'
+),
+
+-- Internships
+(
+  'Marketing Intern',
+  'Support our marketing team with social media, content creation, and campaign analytics. Learn digital marketing in a growing startup.',
+  'GrowthHub',
+  NULL,
+  'Accra, Ghana',
+  'internship',
+  'onsite',
+  'entry',
+  'bachelor',
+  1000, 1500, 'GHS',
+  ARRAY['Social Media', 'Content Creation', 'Marketing', 'Analytics'],
+  'Marketing',
+  'https://example.com/apply/8',
+  'manual'
+),
+(
+  'Software Engineering Intern',
+  'Join Google''s engineering team for a 12-week paid internship. Work on real projects that impact billions of users.',
+  'Google',
+  'https://logo.clearbit.com/google.com',
+  'Remote',
+  'internship',
+  'remote',
+  'entry',
+  'bachelor',
+  3000, 5000, 'USD',
+  ARRAY['Computer Science', 'Python', 'Java', 'Algorithms'],
+  'Technology',
+  'https://careers.google.com',
+  'manual'
+),
+(
+  'Business Analyst',
+  'Analyze business processes and help optimize operations. SQL and Excel skills required. Great for career switchers.',
+  'Consulting Partners',
+  NULL,
+  'Cape Town, South Africa',
+  'job',
+  'hybrid',
+  'entry',
+  'bachelor',
+  25000, 35000, 'ZAR',
+  ARRAY['SQL', 'Excel', 'Business Analysis', 'Communication'],
+  'Consulting',
+  'https://example.com/apply/10',
+  'manual'
+),
+
+-- More variety
+(
+  'Mobile Developer (React Native)',
+  'Build cross-platform mobile apps for our healthcare platform. Experience with React Native and TypeScript required.',
+  'HealthTech Solutions',
+  NULL,
+  'Remote',
+  'job',
+  'remote',
+  'mid',
+  'bachelor',
+  60000, 90000, 'USD',
+  ARRAY['React Native', 'TypeScript', 'Mobile Development', 'REST APIs'],
+  'Healthcare',
+  'https://example.com/apply/11',
+  'manual'
+),
+(
+  'DevOps Engineer',
+  'Manage cloud infrastructure and CI/CD pipelines. Experience with AWS, Docker, and Kubernetes required.',
+  'ScaleUp Africa',
+  NULL,
+  'Johannesburg, South Africa',
+  'job',
+  'hybrid',
+  'senior',
+  'bachelor',
+  50000, 70000, 'ZAR',
+  ARRAY['AWS', 'Docker', 'Kubernetes', 'CI/CD', 'Linux'],
+  'Technology',
+  'https://example.com/apply/12',
+  'manual'
+),
+(
+  'Content Writer',
+  'Create engaging content for our blog and social media. Must have excellent English writing skills and knowledge of SEO.',
+  'ContentFirst',
+  NULL,
+  'Remote',
+  'contract',
+  'remote',
+  'entry',
+  'bachelor',
+  500, 1000, 'USD',
+  ARRAY['Writing', 'SEO', 'Content Strategy', 'Social Media'],
+  'Media',
+  'https://example.com/apply/13',
+  'manual'
+),
+(
+  'Graduate Trainee Program',
+  'Two-year rotational program for fresh graduates. Gain experience across different departments including finance, operations, and HR.',
+  'PanAfrican Bank',
+  NULL,
+  'Multiple Locations',
+  'job',
+  'onsite',
+  'entry',
+  'bachelor',
+  4000, 6000, 'GHS',
+  ARRAY['Fresh Graduate', 'Leadership', 'Analytical Skills'],
+  'Banking',
+  'https://example.com/apply/14',
+  'manual'
+),
+(
+  'Machine Learning Engineer',
+  'Build and deploy ML models for our recommendation engine. Experience with Python, TensorFlow, and MLOps required.',
+  'AI Labs Africa',
+  NULL,
+  'Kigali, Rwanda',
+  'job',
+  'hybrid',
+  'senior',
+  'master',
+  80000, 120000, 'USD',
+  ARRAY['Python', 'TensorFlow', 'Machine Learning', 'MLOps', 'AWS'],
+  'Technology',
+  'https://example.com/apply/15',
+  'manual'
+);
+
+-- Verify insertion
+SELECT COUNT(*) as total_opportunities FROM public.opportunities;

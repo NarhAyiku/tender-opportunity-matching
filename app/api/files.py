@@ -1,18 +1,26 @@
 import os
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+import hashlib
+from typing import Optional, List
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from datetime import datetime
 
 from app.security import get_db, get_current_user
 from app.models.user import User
+from app.models.document import Document
+from app.schemas.document import DocumentResponse
 from app.config import (
     RESUME_DIR,
     TRANSCRIPT_DIR,
+    COVER_LETTER_DIR,
     PROFILE_PICTURE_DIR,
     MAX_FILE_SIZE,
     ALLOWED_RESUME_EXTENSIONS,
     ALLOWED_TRANSCRIPT_EXTENSIONS,
+    ALLOWED_COVER_LETTER_EXTENSIONS,
     ALLOWED_IMAGE_EXTENSIONS,
 )
 
@@ -232,3 +240,122 @@ def delete_profile_picture(
     db.commit()
 
     return {"message": "Profile picture deleted"}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Cover Letter endpoints
+# ──────────────────────────────────────────────────────────────────────────────
+
+@router.post("/cover-letter")
+async def upload_cover_letter(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Upload a cover letter to the document vault."""
+    ext = validate_file_extension(file.filename, ALLOWED_COVER_LETTER_EXTENSIONS)
+    stored_name = generate_filename(current_user.id, ext, "cover_letter")
+
+    contents = await file.read()
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 10MB)")
+
+    filepath = os.path.join(COVER_LETTER_DIR, stored_name)
+    with open(filepath, "wb") as f:
+        f.write(contents)
+
+    sha256 = hashlib.sha256(contents).hexdigest()
+
+    # Unset previous default cover letter
+    db.query(Document).filter(
+        Document.user_id == current_user.id,
+        Document.type == "cover_letter",
+        Document.is_default == True,
+        Document.deleted_at == None,
+    ).update({"is_default": False})
+
+    doc = Document(
+        user_id=current_user.id,
+        type="cover_letter",
+        filename=file.filename,
+        stored_filename=stored_name,
+        mime_type=file.content_type or "application/octet-stream",
+        size_bytes=len(contents),
+        storage_url=filepath,
+        sha256_hash=sha256,
+        is_default=True,
+        version=1,
+    )
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+
+    return DocumentResponse.model_validate(doc)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Document Vault: list & manage
+# ──────────────────────────────────────────────────────────────────────────────
+
+@router.get("/", response_model=List[DocumentResponse])
+def list_documents(
+    doc_type: Optional[str] = Query(None, description="Filter by type: resume, transcript, cover_letter"),
+    include_deleted: bool = Query(False),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List all documents in the user's vault."""
+    q = db.query(Document).filter(Document.user_id == current_user.id)
+
+    if doc_type:
+        q = q.filter(Document.type == doc_type)
+    if not include_deleted:
+        q = q.filter(Document.deleted_at == None)
+
+    return q.order_by(Document.uploaded_at.desc()).all()
+
+
+class PatchDocumentRequest(BaseModel):
+    is_default: Optional[bool] = None
+    delete: Optional[bool] = None      # True = soft-delete, False = restore
+    filename: Optional[str] = None     # rename original filename
+
+
+@router.patch("/{doc_id}", response_model=DocumentResponse)
+def update_document(
+    doc_id: int,
+    payload: PatchDocumentRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Set default, soft-delete, restore, or rename a document."""
+    doc = (
+        db.query(Document)
+        .filter(Document.id == doc_id, Document.user_id == current_user.id)
+        .first()
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    if payload.is_default is True:
+        # Unset other defaults of the same type
+        db.query(Document).filter(
+            Document.user_id == current_user.id,
+            Document.type == doc.type,
+            Document.id != doc.id,
+            Document.deleted_at == None,
+        ).update({"is_default": False})
+        doc.is_default = True
+
+    if payload.delete is True:
+        doc.deleted_at = datetime.utcnow()
+        doc.is_default = False
+    elif payload.delete is False:
+        doc.deleted_at = None
+
+    if payload.filename:
+        doc.filename = payload.filename
+
+    db.commit()
+    db.refresh(doc)
+    return DocumentResponse.model_validate(doc)

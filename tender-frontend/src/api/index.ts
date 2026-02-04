@@ -6,3 +6,5 @@ export { swipesApi } from './swipes';
 export { preferencesApi } from './preferences';
 export { applicationsApi } from './applications';
 export { filesApi } from './files';
+export { documentApi } from './documentsApi';
+export { conversationsApi } from './conversations';

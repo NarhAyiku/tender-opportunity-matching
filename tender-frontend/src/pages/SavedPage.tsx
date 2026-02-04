@@ -1,24 +1,18 @@
 import { useEffect, useState } from 'react';
-import { swipesApi, feedApi } from '../api';
+import { swipesApi } from '../api';
 import { AppLayout } from '../components/layout';
-import { Card, Spinner, Badge, Button } from '../components/common';
-import { Swipe, Opportunity } from '../types';
-import { Building2, MapPin, DollarSign, Trash2 } from 'lucide-react';
-
-interface SavedOpportunity extends Swipe {
-  opportunity?: Opportunity;
-}
+import { Card, Spinner } from '../components/common';
+import { Swipe } from '../types';
+import { Building2, Trash2 } from 'lucide-react';
 
 export function SavedPage() {
-  const [saved, setSaved] = useState<SavedOpportunity[]>([]);
+  const [saved, setSaved] = useState<Swipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchSaved = async () => {
       try {
         const swipes = await swipesApi.getSaved();
-        // For now, we just show the swipes without the full opportunity data
-        // In a real app, we'd fetch the opportunity details
         setSaved(swipes);
       } catch (error) {
         console.error('Failed to fetch saved:', error);

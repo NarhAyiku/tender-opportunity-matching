@@ -1,0 +1,696 @@
+# TENDER - Progress Tracker
+# Last updated: 2026-02-04
+# Reference: PRD.md, CLAUDE.md, WORK_LOG.md
+#
+# STATUS KEY:
+#   [x] = Done
+#   [~] = In Progress / Partially Done
+#   [ ] = Not Started
+#   [!] = Blocked / Needs Attention
+#
+# HOW TO USE (for coding agents):
+#   1. Read this file before starting any work.
+#   2. Pick the next [ ] or [~] task under the current milestone.
+#   3. Update status to [~] when you begin work.
+#   4. Update status to [x] when complete, and add a dated note.
+#   5. If blocked, mark [!] and describe the blocker.
+#   6. Always update "Last updated" date at the top.
+#
+# IMPORTANT - OWNER RULE:
+#   After completing work, ALWAYS pause and let the owner (Benjamin) test
+#   before moving on. Do NOT chain tasks without a testing checkpoint.
+#   The owner wants to verify each batch of changes works before proceeding.
+
+================================================================================
+PRD MILESTONE 1: Data & API Plumbing
+================================================================================
+Goal: Migrations for new columns/tables; vault & screening endpoints; feed
+returns full fields.
+
+## 1A. Database Models & Migrations
+  [x] User model extended (age, location, preferred_countries, screening fields, consent)
+  [x] Document model created (app/models/document.py)
+  [x] ParsedDocument model created (app/models/document.py)
+  [x] Opportunity model extended (category, education_requirements, work_arrangement, etc.)
+  [x] Conversations model (app/models/conversation.py) - 2026-01-30
+  [x] ConversationEvents model (app/models/conversation.py) - 2026-01-30
+  [x] Applications model extended (attached_resume_id, attached_transcript_id, attached_cover_letter_id, conversation_id) - 2026-01-30
+  [x] Models registered in app/main.py (auto-creates tables via Base.metadata.create_all) - 2026-01-30
+  [x] Run migrations for existing database — Supabase ALTER TABLE for 23 missing columns via Management API - 2026-01-31
+  [x] PostgREST schema cache reloaded (NOTIFY pgrst, 'reload schema') - 2026-01-31
+
+## 1B. Document Vault Endpoints
+  [x] POST /files/resume (upload) - app/api/files.py
+  [x] POST /files/transcript (upload) - app/api/files.py
+  [x] POST /files/cover-letter (upload) - app/api/files.py - 2026-01-30
+  [x] GET /files (list vault items with type filter) - app/api/files.py - 2026-01-30
+  [x] PATCH /files/:id (set default, soft delete/restore, rename) - app/api/files.py - 2026-01-30
+  [x] Per-user authorization on file access (all endpoints check current_user) - 2026-01-30
+  [x] Cover letter directory added to config.py - 2026-01-30
+  [x] Supabase Storage buckets created (resumes, transcripts) with RLS policies - 2026-01-31
+  [ ] Secure time-limited download links (future: S3 signed URLs)
+
+## 1C. Screening Endpoints
+  [x] GET /screening/status - app/api/screening.py
+  [x] POST /screening/complete - app/api/screening.py
+  [x] Screening schema (app/schemas/screening.py)
+  [x] Block feed access until screening is complete (backend gate in match.py) - 2026-01-30
+  [x] Frontend screening checklist UI (mobile-app/src/pages/Screening.jsx) - 2026-01-30
+  [x] Feed redirects to /screening if not completed (Feed.jsx) - 2026-01-30
+  [x] Screening route added to App.jsx - 2026-01-30
+
+## 1D. Feed - Full Opportunity Fields
+  [x] GET /match/feed exists - app/api/match.py
+  [x] Feed returns all PRD fields: description, category, education_requirement, work_arrangement,
+      salary (min/max/currency/period), location, benefits, eligibility_criteria, application_deadline,
+      preferred_skills, url, source, company_size - 2026-01-30
+  [ ] POST /opportunities/bulk with required field enforcement (admin)
+
+================================================================================
+PRD MILESTONE 2: Parsing Pipeline
+================================================================================
+Goal: Parser worker/service; store parsed_documents; apply-to-profile endpoint;
+confidence handling.
+
+## 2A. Backend Parsing Service
+  [x] DocumentParser service created (app/services/document_parser.py)
+  [x] Section detection + named entity extraction (regex/heuristic MVP)
+  [x] Confidence scoring per field (0.0-1.0, threshold 0.70)
+  [x] Parsing schemas (app/schemas/document.py)
+
+## 2B. Parsing API Endpoints
+  [x] POST /files/resume/parse - app/api/parsing.py
+  [x] POST /files/transcript/parse - app/api/parsing.py
+  [x] GET /files/parse/:id (status/result) - app/api/parsing.py
+  [x] POST /profile/apply-parsed - app/api/parsing.py
+  [x] Router registered in app/main.py
+
+## 2C. Frontend Parsing Integration (tender-frontend)
+  [x] ParsedData, ParseResult TypeScript types (src/types/document.ts)
+  [x] documentsApi client (src/api/documentsApi.ts)
+  [x] ParsedDataReview component (src/components/profile/ParsedDataReview.tsx)
+  [!] Integration into DocumentUploadPage.tsx - NOT YET WIRED UP
+      Blocker: Need to modify DocumentUploadPage to call parse after upload,
+      show loading, display ParsedDataReview, handle "Apply to Profile".
+
+## 2D. Frontend Parsing Integration (mobile-app)
+  [ ] Parse trigger after resume upload
+  [ ] Loading/progress UI during parsing
+  [ ] Parsed data review screen
+  [ ] Apply parsed data to profile
+  [ ] Low-confidence field flagging UI
+
+================================================================================
+PRD MILESTONE 3: Screening Gate
+================================================================================
+Goal: UI/BE gating before feed; checklist; persist answers; defaults for
+attachments on apply.
+
+## 3A. Backend Screening Gate
+  [x] Screening status endpoint (GET /screening/status)
+  [x] Screening complete endpoint (POST /screening/complete)
+  [x] Feed endpoint returns 403 if screening not complete (_check_screening in match.py) - 2026-01-30
+  [ ] Default document attachment on swipe-like (use user's default resume/transcript)
+
+## 3B. Frontend Screening Gate (mobile-app)
+  [x] Screening page created (mobile-app/src/pages/Screening.jsx) - 2026-01-30
+  [x] Screening checklist UI (age, location, preferred countries, resume, transcript, consent) - 2026-01-30
+  [x] Block navigation to Feed until screening complete (Feed.jsx checks profile) - 2026-01-30
+  [x] Consent checkbox with auditable timestamp - 2026-01-30
+  [x] Step-by-step wizard (5 steps) with progress tracking - 2026-01-30
+  [x] Inline document upload in screening step 3 (no navigation away) - 2026-01-31
+  [x] Bottom nav hidden during screening (full blocking flow) - 2026-01-31
+  [ ] Allow edits to screening answers later (re-visit /screening)
+
+## 3C. Frontend Screening Gate (tender-frontend)
+  [ ] Screening checklist page
+  [ ] Feed gating logic
+  [ ] Edit screening answers
+
+================================================================================
+PRD MILESTONE 4: Conversations (Read-Only)
+================================================================================
+Goal: Models, endpoints, timeline UI; hook application status changes to events.
+
+## 4A. Backend Conversations
+  [x] Conversation model (app/models/conversation.py) - 2026-01-30
+  [x] ConversationEvent model (app/models/conversation.py) - 2026-01-30
+  [x] Pydantic schemas (app/schemas/conversation.py) - 2026-01-30
+  [x] GET /conversations endpoint - app/api/conversations.py - 2026-01-30
+  [x] GET /conversations/:id endpoint - app/api/conversations.py - 2026-01-30
+  [x] GET /conversations/:id/events endpoint - app/api/conversations.py - 2026-01-30
+  [x] Auto-create conversation on swipe approval (app/api/swipes.py) - 2026-01-30
+  [x] Auto-create "applied" status event on conversation creation - 2026-01-30
+  [x] Router registered in app/main.py - 2026-01-30
+
+## 4B. Frontend Conversations (mobile-app)
+  [x] Inbox page rebuilt with real Supabase data (mobile-app/src/pages/Inbox.jsx) - 2026-01-30
+  [x] Conversation list UI with company/title/status display - 2026-01-30
+  [x] Conversation detail / timeline view with EventTimeline component - 2026-01-30
+  [x] Filter by type (all, jobs, internships, scholarships, interviews) - 2026-01-30
+  [x] Unread count badges per conversation and per tab - 2026-01-30
+  [x] Search conversations by title/company - 2026-01-30
+
+## 4C. Frontend Conversations (tender-frontend)
+  [ ] Applications page conversation integration
+  [ ] Timeline event display
+  [ ] Conversation list
+
+================================================================================
+PRD MILESTONE 5: Vault UX & Attachments
+================================================================================
+Goal: Manage docs, set default, soft delete/restore; application flow doc picker.
+
+## 5A. Backend Vault Features
+  [x] GET /files - list all user documents (app/api/files.py) - 2026-01-30
+  [x] PATCH /files/:id - set default, soft delete, restore (app/api/files.py) - 2026-01-30
+  [ ] Version tracking for re-uploads (model has version field, increment logic needed)
+  [x] SHA-256 hash on upload (cover-letter endpoint) - 2026-01-30
+  [x] Soft delete (deleted_at timestamp in Document model) - 2026-01-30
+
+## 5B. Frontend Vault (mobile-app)
+  [x] File upload hook created (mobile-app/src/lib/useFileUpload.js) - 2026-01-31
+  [x] Profile FilesTab wired with upload buttons (resume + transcript) - 2026-01-31
+  [~] Document management page (list, upload works; delete/set default not yet)
+  [ ] Document picker in application flow
+  [ ] Show default document indicators
+
+## 5C. Frontend Vault (tender-frontend)
+  [ ] Document vault page
+  [ ] Upload/manage/set default UI
+  [ ] Application attachment picker
+
+================================================================================
+PRD MILESTONE 6: Theming
+================================================================================
+Goal: Apply purple tokens across UI; ensure feed shows full description and
+new metadata.
+
+## 6A. Mobile App Theme
+  [x] Purple theme applied (mobile-app/src/index.css, styles/)
+  [x] Opportunity card shows category, location, work arrangement - 2026-01-30
+  [x] Full description visible in feed card (scrollable area) - 2026-01-30
+  [x] Education requirements displayed - 2026-01-30
+  [x] Compensation/stipend displayed (with currency symbol + period) - 2026-01-30
+  [x] Rules/requirements (eligibility_criteria) displayed - 2026-01-30
+  [x] Benefits badges displayed - 2026-01-30
+  [x] Application deadline displayed - 2026-01-30
+
+## 6B. Tender Frontend Theme
+  [~] Theme updated (was Emerald Green per WORK_LOG, PRD says purple)
+      Note: WORK_LOG from 2026-01-24 says Emerald Green. PRD says purple.
+      Needs alignment - confirm with owner which theme to use.
+  [ ] Feed card shows all opportunity fields (category, edu reqs, work arrangement, compensation, rules, location, full description)
+
+================================================================================
+EXISTING FEATURES (from CLAUDE.md - Phase 1 Complete)
+================================================================================
+  [x] JWT Authentication (signup/login)
+  [x] Rich user profiles (work experience, education, projects, skills, languages, awards)
+  [x] User preferences (job titles, locations, salary, job levels, work arrangements)
+  [x] Expanded opportunities (company info, salary, location, type)
+  [x] Swipe system (like/dislike/save with history)
+  [x] Smart feed (/match/feed - excludes already-swiped, ranked by match score)
+  [x] File uploads (resume, transcript, profile picture)
+  [x] Application tracking with timeline events
+  [x] Profile completion percentage
+
+================================================================================
+MOBILE APP PAGES STATUS
+================================================================================
+  [x] Feed.jsx - Swipe interface + screening gate
+  [x] Profile.jsx - User profile
+  [x] Preferences.jsx - User preferences
+  [x] Login.jsx - Authentication
+  [x] Signup.jsx - Registration
+  [x] ApplicationPreview.jsx - Application details
+  [x] Inbox.jsx - Real conversations with timeline
+  [x] Screening.jsx - Pre-access screening checklist (NEW 2026-01-30)
+  [x] Applications.jsx - Application list (via BottomNav)
+  [x] Saved.jsx - Saved opportunities
+  [x] ErrorBoundary.jsx - Error handling component
+  [x] ProtectedRoute.jsx - Auth guard
+
+================================================================================
+SUPABASE INFRASTRUCTURE (mobile-app backend)
+================================================================================
+  [x] Supabase project configured (ref: aykrsqglrngxbcokqpad) - 2026-01-31
+  [x] profiles table — 23 columns added via ALTER TABLE - 2026-01-31
+  [x] conversations table + RLS + indexes - 2026-01-31
+  [x] conversation_events table + RLS - 2026-01-31
+  [x] handle_interested_swipe trigger (auto-create conversation on swipe right) - 2026-01-31
+  [x] Storage buckets (resumes, transcripts) + 8 RLS policies - 2026-01-31
+  [x] PostgREST schema cache reloaded after column additions - 2026-01-31
+  [x] Seed data (opportunities) — 28 opportunities loaded into Supabase - 2026-02-01
+  [x] Saved opportunities page (Saved.jsx exists with search, filter, unsave) - verified 2026-02-01
+
+================================================================================
+ARCHITECTURE NOTE
+================================================================================
+  IMPORTANT: Two separate systems exist and are NOT connected:
+  1. mobile-app (React + Vite) → Supabase (PostgreSQL, Auth, Storage) — ACTIVE
+  2. FastAPI backend (Python) → SQLite — LEGACY/PARALLEL, not used by mobile-app
+
+  The mobile-app talks DIRECTLY to Supabase via @supabase/supabase-js.
+  The FastAPI backend is a separate system with its own models/database.
+  Decision needed: Consolidate to one architecture or keep both.
+
+================================================================================
+NOTES / BLOCKERS
+================================================================================
+- 2026-01-31: Major Supabase migration session. Fixed 23 missing columns in
+  profiles table (CREATE TABLE IF NOT EXISTS doesn't add columns to existing tables).
+  Fixed PostgREST schema cache staleness. Added file upload hook. Inline document
+  upload in screening. Feed screening check made resilient. Bottom nav hidden during
+  screening. Storage buckets + RLS policies created.
+- 2026-01-31: CRITICAL GOTCHA — Supabase's PostgREST caches schema on startup.
+  After ALTER TABLE, MUST run: NOTIFY pgrst, 'reload schema'; Otherwise REST API
+  returns PGRST204 errors for new columns.
+- 2026-01-31: Direct psql to Supabase DB fails (hostname doesn't resolve). Use
+  Supabase Management API instead: POST https://api.supabase.com/v1/projects/{ref}/database/query
+- 2026-01-30: Completed backend models (conversations, conversation_events),
+  extended applications model, built vault endpoints, screening gate on feed,
+  conversation API, screening page, inbox UI, and full opportunity card fields.
+- 2026-01-25: Parsing pipeline backend complete. Frontend integration into
+  DocumentUploadPage.tsx still needed (see WORK_LOG.md).
+- 2026-01-24: tender-frontend theme changed to Emerald Green, but PRD specifies
+  purple. Needs owner decision.
+
+================================================================================
+ERROR LOG — KNOWN BUGS, ROOT CAUSES & FIXES
+================================================================================
+# PURPOSE: Every error encountered in the project is logged here with its root
+# cause and fix. Before investigating any bug, CHECK THIS LOG FIRST to avoid
+# repeating the same debugging cycle. Errors are tracked by ID (ERR-XXX).
+#
+# STATUS KEY:
+#   [FIXED]    = Root cause identified and fix applied
+#   [OPEN]     = Known issue, not yet fixed
+#   [WONTFIX]  = Acknowledged, intentionally not fixing
+#   [WATCHING] = Fixed but monitoring for recurrence
+#
+# FORMAT:
+#   ERR-XXX | Status | Date Found | Summary
+#     Root cause: ...
+#     Files affected: ...
+#     Fix applied: ...
+#     How to verify: ...
+
+--- 2026-01-31 ---
+
+ERR-001 | [FIXED] | 2026-01-31 | AbortError: signal is aborted without reason (Supabase auth)
+  Symptom: Console flooded with "AbortError: signal is aborted without reason"
+           on every page load. 4+ uncaught promise rejections, profile fetch
+           retrying 3 times and failing, screening data load failing, file
+           uploads failing with StorageUnknownError.
+  Root cause: Race condition in AuthContext.jsx — explicit getSession() call
+              raced with onAuthStateChange listener. Supabase JS v2's GoTrueClient
+              uses internal AbortController that cancels the earlier request when
+              a new auth operation starts. This cascaded to ALL pending Supabase
+              requests (PostgREST queries, Storage uploads).
+  Chain reaction:
+    1. getSession() fires → GoTrueClient creates AbortController
+    2. onAuthStateChange fires SIGNED_IN → new auth op aborts previous
+    3. getSession() promise rejects with AbortError (uncaught)
+    4. Profile fetch from both handlers races → aborted
+    5. Screening.jsx profile query also aborted
+    6. useFileUpload storage upload also aborted
+    7. errorLogger catches all as unhandledrejection → floods console
+  Files affected:
+    - mobile-app/src/context/AuthContext.jsx
+    - mobile-app/src/lib/supabase.js
+    - mobile-app/src/pages/Screening.jsx
+    - mobile-app/src/pages/Feed.jsx
+    - mobile-app/src/lib/useFileUpload.js
+    - mobile-app/src/services/errorLogger.js
+  Fix applied:
+    - AuthContext.jsx: Removed explicit getSession() call. Now relies solely
+      on onAuthStateChange (fires INITIAL_SESSION in Supabase JS v2.39+).
+      Added fetchIdRef to discard stale profile fetches. Added isAbortError
+      helper. Added mounted flag + cleanup. Added 2s fallback timer for
+      loading state.
+    - supabase.js: Removed unnecessary global.fetch wrapper
+      `(...args) => fetch(...args)` that could interfere with internal
+      AbortController handling.
+    - Screening.jsx: Added AbortError check in catch — returns silently
+      instead of logging error.
+    - Feed.jsx: AbortErrors in screening check no longer console.warn.
+    - useFileUpload.js: Added AbortError detection with automatic retry
+      after 1s delay for storage uploads.
+    - errorLogger.js: Global unhandledrejection handler now filters
+      AbortErrors with event.preventDefault().
+  How to verify: Refresh app → console should show only
+    "[Auth] State changed: INITIAL_SESSION" and
+    "[ErrorLogger] Global error handlers initialized".
+    No AbortError entries.
+
+ERR-002 | [FIXED] | 2026-01-31 | React Router v7 deprecation warnings
+  Symptom: Two yellow warnings in console on every page load:
+           "React Router will begin wrapping state updates in React.startTransition in v7"
+           "Relative route resolution within Splat routes is changing in v7"
+  Root cause: react-router-dom v6 emits deprecation warnings for v7 breaking
+              changes. App was not opting into future flags.
+  Files affected:
+    - mobile-app/src/App.jsx
+  Fix applied:
+    - Added future flags to BrowserRouter:
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+  How to verify: No yellow React Router warnings in console.
+
+ERR-003 | [FIXED] | 2026-01-31 | PostgREST PGRST204 errors after ALTER TABLE
+  Symptom: New columns added via ALTER TABLE return PGRST204 "column not found"
+           from Supabase REST API.
+  Root cause: PostgREST caches the database schema on startup. ALTER TABLE
+              changes are invisible until the cache is refreshed.
+  Fix applied: Run `NOTIFY pgrst, 'reload schema';` after every ALTER TABLE.
+  How to verify: Query the new column via REST — should return data, not PGRST204.
+  RULE: After ANY ALTER TABLE on Supabase, ALWAYS run NOTIFY pgrst.
+
+ERR-004 | [FIXED] | 2026-01-31 | CREATE TABLE IF NOT EXISTS doesn't add columns
+  Symptom: profiles table existed but was missing 23 columns. Running the full
+           CREATE TABLE IF NOT EXISTS did nothing.
+  Root cause: Postgres IF NOT EXISTS only checks if the table exists, not if
+              it has the expected columns. It silently skips the CREATE.
+  Fix applied: Used ALTER TABLE ADD COLUMN IF NOT EXISTS for each column.
+  RULE: NEVER rely on CREATE TABLE IF NOT EXISTS for schema migrations.
+        ALWAYS use ALTER TABLE ADD COLUMN IF NOT EXISTS.
+
+ERR-005 | [FIXED] | 2026-02-01 | Feed shows no opportunities
+  Symptom: Feed page loads but shows empty state — no cards to swipe.
+  Root cause: THREE issues in Feed.jsx:
+    1. `.eq('status', 'active')` — column doesn't exist, should be `.eq('is_active', true)`
+    2. `company: companies(name, logo_url)` join — companies table doesn't exist,
+       company info is stored directly on opportunities (company_name, company_logo)
+    3. `screeningChecked` was a useRef — ref changes don't trigger re-renders,
+       so the feed load useEffect never re-ran after screening check passed
+    4. `React.createRef()` used but React not imported as default — would crash
+       when opportunities loaded
+  Additional: Seed data was also missing (28 opportunities now loaded).
+  Files affected: mobile-app/src/pages/Feed.jsx
+  Fix applied:
+    - Changed `.eq('status', 'active')` → `.eq('is_active', true)`
+    - Changed `.select('*, company: companies(name, logo_url)')` → `.select('*')`
+    - Converted `screeningChecked` from useRef to useState
+    - Changed `React.createRef()` → `createRef()` (imported from react)
+  How to verify: Load /feed as authenticated user → should show opportunity cards.
+
+ERR-006 | [WATCHING] | 2026-02-02 | Full end-to-end flow partially tested
+  Symptom: No verified path through Signup → Screening → Feed → Swipe → Inbox.
+  Progress (2026-02-02): ERR-007, ERR-008, ERR-009 fixed. Login → Feed → Swipe works.
+  Verified:
+    - Login page: renders correctly, purple theme, no console errors
+    - Auth: signInWithPassword succeeds, SIGNED_IN fires, profile loads
+    - Feed: loads 20+ opportunity cards from Supabase, swipe UI renders
+    - Profile: loads, shows 25% completion, resume/personal/files tabs work
+    - Bottom nav: works correctly, active state highlights
+    - Swipe DB operations: skip, save, interested all succeed (upsert + RLS verified)
+  Still need to test: Signup → email confirm, Screening wizard, visual swipe
+    animation, Inbox/conversations, file uploads, saved page.
+
+ERR-007 | [FIXED] | 2026-02-02 | Supabase client queries hang silently
+  Symptom: `supabase.from('profiles').select(...)` calls fire but never resolve.
+           No HTTP requests appear on the network tab. Affects both Feed.jsx
+           screening check and Screening.jsx data load.
+  Root cause: Running async Supabase .from() queries INSIDE the onAuthStateChange
+              callback caused a deadlock. The callback fires before the client has
+              fully committed the session internally, so PostgREST queries queued
+              behind the incomplete session update and never resolved.
+  Files affected: mobile-app/src/context/AuthContext.jsx
+  Fix applied:
+    - Separated auth state updates from profile fetching.
+    - onAuthStateChange callback now ONLY sets user state synchronously (no async).
+    - Profile fetching moved to a separate useEffect that reacts to user.id changes.
+    - This ensures .from() queries run AFTER the session is fully committed.
+  How to verify: Login → feed loads with opportunity cards, no hanging queries.
+  RULE: NEVER run async Supabase .from() queries inside onAuthStateChange callbacks.
+
+ERR-008 | [FIXED] | 2026-02-02 | CSS token conflicts (theme.css overrides tokens.css)
+  Symptom: Primary color was indigo (#4f46e5) instead of violet (#7c3aed).
+           Inconsistent spacing/radius values across components.
+  Root cause: theme.css defined a competing :root block that overrode tokens.css
+              variables. Import order: tokens.css → theme.css meant theme won.
+  Files affected: mobile-app/src/styles/tokens.css, theme.css, components/ui/Button.jsx
+  Fix applied:
+    - Merged unique theme.css variables into tokens.css (--color-bg, --color-surface, etc.)
+    - Removed :root block from theme.css (now only contains utility classes)
+    - Fixed Button.jsx ghost variant from hardcoded indigo to CSS variable
+  How to verify: App uses consistent violet/purple throughout.
+
+ERR-009 | [FIXED] | 2026-02-02 | Swipe actions fail (PGRST204 + RLS + constraint)
+  Symptom: Clicking Pass/Save/Apply buttons in Feed.jsx and OpportunityDetails.jsx
+           fails with multiple errors:
+           1. PGRST204: "Could not find the 'updated_at' column of 'swipes'"
+           2. 42501: RLS permission denied on upsert (UPDATE part)
+           3. Check constraint violation: 'applied' not in allowed actions
+  Root causes:
+    1. swipes table was missing `updated_at` column (code sends it in upsert)
+    2. swipes table had INSERT, SELECT, DELETE RLS policies but NO UPDATE policy
+       (upsert = INSERT + UPDATE, so the UPDATE part was blocked)
+    3. Feed.jsx and OpportunityDetails.jsx used action value 'applied' but the
+       DB CHECK constraint only allows: 'interested', 'skip', 'save'
+  Files affected:
+    - mobile-app/src/pages/Feed.jsx (action value fix)
+    - mobile-app/src/pages/OpportunityDetails.jsx (action value fix)
+    - Supabase swipes table (schema + RLS)
+  Fix applied:
+    - ALTER TABLE swipes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()
+    - CREATE POLICY "Users can update own swipes" ON swipes FOR UPDATE
+      USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)
+    - NOTIFY pgrst, 'reload schema'
+    - Changed 'applied' to 'interested' in Feed.jsx handleApply()
+    - Changed 'applied' to 'interested' in OpportunityDetails.jsx handleAction()
+  How to verify: Swipe on opportunity → no console errors. All 3 actions work:
+    skip (pass), save (heart), interested (apply). Verified via browser console
+    upsert test — all 3 succeed with data returned.
+
+================================================================================
+GAP ANALYSIS vs SORCE.JOBS — 2026-02-04
+================================================================================
+# Full comparative analysis performed against Sorce.jobs (YC W25, "Tinder for Jobs").
+# 33 Sorce screenshots analyzed + web research + full TENDER codebase exploration.
+# Detailed report in WORK_LOG.md (2026-02-04 session entry).
+# Implementation specs in GAP_ANALYSIS_PHASES.md
+#
+# CRITICAL GAPS (must-have, product not competitive without these):
+#   C1  [ ] Feed preferences/filters applied to feed query
+#   C2  [ ] Profile edit/delete on existing entries (only add works now)
+#   C3  [ ] Applications dashboard with status breakdown (Submitted/Pending/Attention)
+#   C4  [ ] Settings page (sign out, delete account, notifications, about)
+#   C5  [ ] Resume parsing → profile auto-fill wired to mobile app
+#   C6  [ ] Smart feed ranking using match scores
+#   C7  [ ] Job aggregation pipeline (only 28 seed opps, Sorce has 1.6M)
+#   C8  [ ] Personal info expansion (demographics, DOB, title, employment info)
+#   C9  [ ] Architecture consolidation (FastAPI+SQLite vs Supabase-only)
+#   C10 [ ] Test infrastructure (Vitest for mobile-app, zero tests exist)
+#
+# ENHANCEMENT GAPS (high leverage competitive advantage):
+#   E1  [ ] AI cover letter generation (per opportunity + user profile)
+#   E2  [ ] Application pre-saved responses ("Responses" tab like Sorce)
+#   E3  [ ] Company profile pages (tap company → see all their listings)
+#   E4  [ ] Passed/swiped-left jobs list (view history, undo passes)
+#   E5  [ ] File management (preview, multi-file, select default, delete)
+#   E6  [ ] Match quality indicator on cards (e.g., "87% match")
+#   E7  [ ] Real-time updates (Supabase subscriptions for live status)
+#   E8  [ ] Feedback/support channel (direct line to team)
+#   E9  [ ] Notification system (push/in-app for status changes)
+#   E10 [ ] Onboarding swipe tutorial (first-time gesture guidance)
+#
+# OPTIONAL (future roadmap):
+#   O1  [ ] AI auto-apply agent (Sorce's core — needs browser automation)
+#   O2  [ ] Monetization (credits, premium tiers)
+#   O3  [ ] Referral system
+#   O4  [ ] Live session viewing (watch AI apply)
+#   O5  [ ] Email inbox integration
+#   O6  [ ] Resume tailoring per job
+#   O7  [ ] Creator/partner codes
+#
+# TENDER'S STRATEGIC ADVANTAGES (keep/amplify):
+#   - Broader opportunity types (jobs + internships + scholarships + grants)
+#   - Student/graduate focus with education matching
+#   - Document vault with versioning
+#   - Screening quality gate
+#   - Structured 5-step onboarding
+#   - Purple brand identity (distinct from Sorce's green)
+#
+# RECOMMENDED SPRINT ORDER:
+#   Sprint 1 (Foundation):    C2, C4, C8, C10
+#   Sprint 2 (Feed Quality):  C1, C5, C6, E6, E10
+#   Sprint 3 (Applications):  C3, E4, E3, E5
+#   Sprint 4 (AI Layer):      E1, E2, E8
+#   Sprint 5 (Scale):         C7, C9, E7, E9
+
+================================================================================
+REMAINING WORK (in priority order) — UPDATED 2026-02-04
+================================================================================
+** IMMEDIATE — Sprint 1 Foundation (from Gap Analysis) **
+1. [~] Test full flow: Signup → Screening → Feed → Swipe → Inbox → Profile upload
+       Login → Feed → Swipe DB ops verified working 2026-02-02.
+       Screening wizard, visual swipe animation, Inbox, file uploads still need testing.
+2. [ ] C2: Profile edit/delete on existing entries
+3. [ ] C4: Settings page (sign out, delete account, notifications)
+4. [ ] C8: Personal info expansion (demographics, DOB, title)
+5. [ ] C10: Test infrastructure — Vitest setup for mobile-app
+
+** SHORT TERM — Sprint 2 Feed Quality **
+6. [ ] C1: Feed preferences/filters applied to feed query
+7. [ ] C5: Resume parsing → profile auto-fill (mobile integration)
+8. [ ] C6: Smart feed ranking using match scores
+9. [ ] E6: Match quality indicator on cards
+10. [ ] E10: Onboarding swipe tutorial
+
+** MEDIUM TERM — Sprint 3 Applications UX **
+11. [ ] C3: Applications dashboard with status tabs & summary
+12. [ ] E4: Passed/swiped-left jobs list
+13. [ ] E3: Company profile pages
+14. [ ] E5: File management (preview, multi-file, default, delete)
+
+** AI LAYER — Sprint 4 **
+15. [ ] E1: AI cover letter generation
+16. [ ] E2: Application pre-saved responses
+17. [ ] E8: Feedback/support channel
+
+** SCALE — Sprint 5 **
+18. [ ] C7: Job aggregation pipeline (Jooble/Adzuna integration)
+19. [ ] C9: Architecture consolidation decision + execution
+20. [ ] E7: Real-time updates (Supabase subscriptions)
+21. [ ] E9: Notification system
+
+** LEGACY (deprioritized, from previous remaining work) **
+22. [ ] Default document attachment on swipe-like - Milestone 3A
+23. [ ] Allow re-visiting /screening to edit answers - Milestone 3B
+24. [ ] tender-frontend parity (screening, conversations, vault) - Milestones 3C/4C/5C
+25. [ ] POST /opportunities/bulk admin endpoint - Milestone 1D
+26. [ ] Document version increment on re-upload - Milestone 5A
+27. [ ] Secure time-limited download links - Milestone 1B
+
+================================================================================
+PRD MILESTONE 7: Application Tracking (Enhanced)
+================================================================================
+Goal: Implement full Application Tracking screen per Sorce reference, with 
+timeline events, qualification check, and job detail modals.
+
+Reference: docs/application-tracking-implementation.md
+
+## 7A. Database Schema (Supabase)
+  [ ] CREATE TABLE applications (extend schema per implementation plan)
+  [ ] CREATE TABLE application_events (event types, timestamps, metadata)
+  [ ] RLS policies for user-scoped access
+  [ ] Indexes on application_id, timestamp
+  [ ] NOTIFY pgrst, 'reload schema'
+
+## 7B. UI Components (Design System Approach)
+  [ ] StatusBadge.jsx - Status indicator with color-coded dot
+  [ ] ActionRow.jsx - Tappable row with icon, label, chevron
+  [ ] SectionCard.jsx - Collapsible card container
+  [ ] ScreenHeader.jsx - Back button + title + menu
+  [ ] Timeline.jsx - Date-grouped event timeline
+  [ ] TimelineItem.jsx - Individual event with connector line
+  [ ] DateHeader.jsx - Date group separator
+
+## 7C. Modal Components
+  [ ] JobDescriptionModal.jsx - Full job description display
+  [ ] PortalCredentialsModal.jsx - Secure credential display (stub)
+
+## 7D. Application Tracking Page
+  [ ] ApplicationTracking.jsx - Main page component
+  [ ] Route added to App.jsx (/application/:id)
+  [ ] Navigation from Applications.jsx list
+
+## 7E. Data Layer
+  [ ] types/application.js - TypeScript definitions
+  [ ] data/mockApplications.js - Mock data for development
+  [ ] lib/applicationsApi.js - Supabase queries
+
+## 7F. Polish & QA
+  [ ] QA-001: No applications empty state
+  [ ] QA-002: Single application, no events
+  [ ] QA-003: Events grouped by date
+  [ ] QA-004: Long job title truncation
+  [ ] QA-005: Missing company logo fallback
+  [ ] QA-006: Dark mode compatibility
+  [ ] QA-007: Responsive layout
+
+## 7G. AI Enhancements (Post-MVP)
+  [ ] Timeline summary generation
+  [ ] Next step suggestion
+
+================================================================================
+AGENTIC TDD METHODOLOGY (documented 2026-01-31)
+================================================================================
+# The ATDD recursive loop is the core development process.
+# Full details in CLAUDE.md under "Agentic Test-Driven Development (ATDD)"
+#
+# Quick reference:
+#   1. RECALL  → Read Agent Session Notes (CLAUDE.md bottom) + progress.txt
+#   2. SPECIFY → Pick feature, define success criteria from acceptance criteria
+#   3. TEST    → Design unit + integration tests BEFORE implementation
+#   4. IMPLEMENT → Write code to pass the tests
+#   5. VERIFY  → Run new tests + regression on ALL previous tests
+#   6. COMMIT  → git commit only when tests pass
+#   7. REFLECT → Update progress.txt, WORK_LOG.md, Agent Session Notes
+#   8. REPEAT
+#
+# Key rules:
+#   - Tests MUST be designed before code
+#   - Git commit after every significant feature (tested state only)
+#   - Re-run past tests after every new feature (catch regressions)
+#   - Leave agent notes in CLAUDE.md for next session
+#   - PRD doubles as agent prompt (acceptance criteria = test assertions)
+#
+# Test infrastructure needed:
+#   [ ] Vitest setup for mobile-app (unit + integration)
+#   [ ] pytest setup for FastAPI backend (unit + integration)
+#   [ ] CI runner for automated test execution
+
+================================================================================
+DEVELOPMENT WORKFLOW & TOOLS
+================================================================================
+# Document Loop (after every significant work session):
+#   PRD.md → progress.txt → WORK_LOG.md → CLAUDE.md → SRS-Architecture.md
+#   Always update progress.txt + WORK_LOG.md after completing tasks.
+#
+# Claude Code Skills (invoke with /skill-name):
+#   /senior-fullstack    — Full codebase audit, architecture review, multi-file changes
+#   /senior-backend      — API design, database optimization, backend logic
+#   /ultra-think         — Deep analysis, complex debugging, strategic decisions
+#   /brainstorming       — Feature ideation, UX flow design, requirements gathering
+#   /webapp-testing      — Browser testing with Playwright, UI verification
+#   /create-architecture-documentation — Generate architecture docs & diagrams
+#   /mcp-builder         — Build MCP servers for external integrations
+#
+# Custom Commands (added 2026-01-31):
+#   /supabase            — Database operations, SQL, migrations, schema management
+#   /test-flow           — E2E testing of user flows (signup, screening, swipe, etc.)
+#   /error-check         — Check ERROR LOG before debugging (prevents repeat cycles)
+#
+# Claude Code Agents (auto-selected):
+#   Explore agent        — Codebase exploration, find files/patterns
+#   Plan agent           — Implementation planning for complex tasks
+#   fullstack-developer  — End-to-end feature implementation
+#   frontend-developer   — React components, UI, state management
+#   backend-architect    — API design, database schemas, scalability
+#   code-reviewer        — Quality, security, maintainability review
+#
+# MCP Servers (configured in .mcp.json):
+#   supabase   — @supabase/mcp-server-supabase (20+ tools: SQL, migrations, storage, RLS)
+#   playwright — @playwright/mcp (browser automation, screenshots, DOM inspection)
+#   fetch      — @modelcontextprotocol/server-fetch (HTTP requests)
+#   github     — @modelcontextprotocol/server-github (PRs, issues, repos)
+#   serena     — Code intelligence (symbols, references, refactoring)
+#
+# Hooks (configured in .claude/settings.local.json):
+#   UserPromptSubmit — Auto-checks progress.txt for [OPEN] errors before every prompt
+#
+# Recommended Workflow:
+#   1. Before starting: Read progress.txt + latest WORK_LOG.md entry
+#   2. For bugs: /error-check first → then /ultra-think → implement → test
+#   3. For new features: /brainstorming → plan → implement → /test-flow
+#   4. For DB changes: /supabase → verify → NOTIFY pgrst
+#   5. For architecture: /senior-fullstack → /create-architecture-documentation
+#   6. After completing: Update progress.txt + WORK_LOG.md
+#
+# Supabase Management:
+#   Run SQL: POST https://api.supabase.com/v1/projects/aykrsqglrngxbcokqpad/database/query
+#   Header: Authorization: Bearer sbp_60e86b3af293337a529315dc5297e1850b50d59b
+#   Body: {"query": "YOUR SQL HERE"}
+#   ALWAYS run: NOTIFY pgrst, 'reload schema'; after ALTER TABLE changes

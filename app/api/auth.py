@@ -1,6 +1,7 @@
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
 from app.security import (
@@ -8,7 +9,7 @@ from app.security import (
     get_password_hash,
     verify_password,
     create_access_token,
-    Token,
+    get_current_user,
 )
 from app.models.user import User
 
@@ -17,8 +18,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 class UserSignup(BaseModel):
     email: EmailStr
-    password: str
-    name: str
+    password: str = Field(..., min_length=8, max_length=128)
+    name: str = Field(..., min_length=2, max_length=120)
 
 
 class UserResponse(BaseModel):
@@ -34,6 +35,7 @@ class UserResponse(BaseModel):
 class AuthResponse(BaseModel):
     access_token: str
     token_type: str
+    expires_in: int
     user: UserResponse
 
 
@@ -64,6 +66,7 @@ def signup(payload: UserSignup, db: Session = Depends(get_db)):
     return AuthResponse(
         access_token=access_token,
         token_type="bearer",
+        expires_in=15 * 60,
         user=UserResponse.model_validate(user)
     )
 
@@ -99,13 +102,14 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     return AuthResponse(
         access_token=access_token,
         token_type="bearer",
+        expires_in=15 * 60,
         user=UserResponse.model_validate(user)
     )
 
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=8, max_length=128)
 
 
 @router.post("/login/json", response_model=AuthResponse)
@@ -135,5 +139,11 @@ def login_json(payload: LoginRequest, db: Session = Depends(get_db)):
     return AuthResponse(
         access_token=access_token,
         token_type="bearer",
+        expires_in=15 * 60,
         user=UserResponse.model_validate(user)
     )
+
+
+@router.get("/me", response_model=UserResponse)
+def me(current_user: User = Depends(get_current_user)):
+    return UserResponse.model_validate(current_user)

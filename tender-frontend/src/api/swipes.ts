@@ -31,4 +31,19 @@ export const swipesApi = {
   async deleteSwipe(id: number): Promise<void> {
     await api.delete(`/swipes/${id}`);
   },
+
+  async getPending(): Promise<Swipe[]> {
+    const response = await api.get<Swipe[]>('/swipes/pending');
+    return response.data;
+  },
+
+  async approveSwipe(id: number): Promise<Swipe> {
+    const response = await api.post<Swipe>(`/swipes/${id}/approve`);
+    return response.data;
+  },
+
+  async editSwipe(id: number, editedData: Record<string, any>): Promise<Swipe> {
+    const response = await api.post<Swipe>(`/swipes/${id}/edit`, { edited_data: editedData });
+    return response.data;
+  },
 };

@@ -1,9 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from app.database import Base, engine
-from app.api import auth, users, opportunities, match, preferences, swipes, files, applications
-from app.models import user, opportunity, preferences as prefs_model, swipe, application
+from app.api import auth, users, opportunities, match, preferences, swipes, files, applications, sync, screening, parsing, conversations
+from app.models import user, opportunity, preferences as prefs_model, swipe, application, document, conversation
 
 # Create all database tables
 Base.metadata.create_all(bind=engine)
@@ -55,6 +59,17 @@ app.include_router(files.router)
 # Application tracking routes
 app.include_router(applications.router)
 
+# Sync routes
+app.include_router(sync.router, prefix="/sync", tags=["sync"])
+
+# Screening routes
+app.include_router(screening.router)
+
+# Parsing routes
+app.include_router(parsing.router)
+
+# Conversation routes
+app.include_router(conversations.router)
 
 @app.get("/")
 def root():
