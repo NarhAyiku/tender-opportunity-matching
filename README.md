@@ -60,3 +60,4 @@ Avoid “vibe-coded” patterns. Every UI change should align to the shared desi
 - UX behaviors: loading states for async actions (skeletons for heavy data), progress indicators on buttons when applicable, functional toggles/carousels.
 - Copywriting: avoid vague slogans, overused em-dashes, fake testimonials, and generic AI faces/placeholders.
 - Core principle: define tokens (spacing, color, radius, weight, animation) and reference them everywhere; inconsistency is a blocker.
+# job-tender
